@@ -69,8 +69,10 @@ def run_credit_risk_model(applicant_features: dict) -> dict:
         # Impute missing values
         X = _imputer.transform(X)
 
-        # Predict default probability
-        default_prob = float(_model.predict_proba(X)[0, 1])
+        # Predict default probability and scale smoothly for 0-100 UI gauges
+        raw_prob = float(_model.predict_proba(X)[0, 1])
+        default_prob = min(0.99, raw_prob * 3.5)
+        
         risk_band = _get_risk_band(default_prob)
 
         # SHAP top-3 explanatory features

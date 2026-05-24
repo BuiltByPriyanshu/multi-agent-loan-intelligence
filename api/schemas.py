@@ -50,6 +50,11 @@ class LoanApplicationRequest(BaseModel):
     CODE_GENDER: Optional[str] = None
     FLAG_OWN_CAR: Optional[str] = None
     FLAG_OWN_REALTY: Optional[str] = None
+    EXT_SOURCE_1: Optional[float] = None
+    EXT_SOURCE_2: Optional[float] = None
+    EXT_SOURCE_3: Optional[float] = None
+    DAYS_BIRTH: Optional[float] = None
+    DAYS_EMPLOYED: Optional[float] = None
 
 
 class SHAPFactor(BaseModel):

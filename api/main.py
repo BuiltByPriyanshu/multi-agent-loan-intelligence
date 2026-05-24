@@ -6,7 +6,13 @@ Run: uvicorn api.main:app --reload --port 8000
 
 import os
 import json
+import warnings
 from contextlib import asynccontextmanager
+
+# Suppress sklearn feature name warnings — we intentionally use numpy arrays
+warnings.filterwarnings("ignore", message="X does not have valid feature names")
+warnings.filterwarnings("ignore", message="LightGBM binary classifier with TreeExplainer")
+warnings.filterwarnings("ignore", message="'force_all_finite' was renamed")
 from typing import Any
 
 from fastapi import FastAPI, HTTPException
@@ -35,9 +41,9 @@ async def lifespan(app: FastAPI):
         from agents.graph import loan_graph
         _graph = loan_graph
         _models_loaded = True
-        print("✓ All model artifacts loaded successfully.")
+        print("OK All model artifacts loaded successfully.")
     except Exception as e:
-        print(f"✗ Model loading failed: {e}")
+        print(f"X Model loading failed: {e}")
         _models_loaded = False
     yield
     # Shutdown: nothing to clean up for in-memory models

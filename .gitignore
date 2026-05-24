@@ -37,3 +37,23 @@ reports/audit_pdfs/*.pdf
 # OS
 .DS_Store
 Thumbs.db
+
+# Model artifacts (too large for GitHub)
+models/artifacts/*.pkl
+models/artifacts/*.joblib
+
+# Audit PDFs
+reports/audit_pdfs/
+
+# Data files (too large)
+data/
+*.parquet
+*.csv
+
+# API Keys & environment variables
+.env
+
+# Python cache
+__pycache__/
+*.pyc
+.ipynb_checkpoints/

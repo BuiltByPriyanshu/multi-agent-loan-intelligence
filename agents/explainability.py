@@ -8,8 +8,8 @@ import os
 import datetime
 from agents.state import LoanState
 
-# ── LangChain / Anthropic ────────────────────────────────────────────────────
-from langchain_anthropic import ChatAnthropic
+# ── LangChain / Ollama (local, free, unlimited) ──────────────────────────────
+from langchain_ollama import ChatOllama
 from langchain_core.messages import HumanMessage
 
 # ── PDF generation ───────────────────────────────────────────────────────────
@@ -23,34 +23,46 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 AUDIT_PDF_DIR = "reports/audit_pdfs"
 os.makedirs(AUDIT_PDF_DIR, exist_ok=True)
 
-# Initialise Claude — model loaded once at module level
-_llm = ChatAnthropic(model="claude-3-5-haiku-20241022", max_tokens=400)
+FEATURE_MAPPING = {
+    "EXT_SOURCE_1": "Credit Bureau Score 1 (Equifax)",
+    "EXT_SOURCE_2": "Credit Bureau Score 2 (Experian)",
+    "EXT_SOURCE_3": "Credit Bureau Score 3 (TransUnion)",
+    "NAME_EDUCATION_TYPE": "Education Type",
+    "AMT_CREDIT": "Total Loan Amount",
+    "AMT_ANNUITY": "Monthly Loan Payment",
+    "AMT_INCOME_TOTAL": "Total Annual Income",
+    "DAYS_BIRTH": "Client Age",
+    "DAYS_EMPLOYED": "Employment Duration",
+    "AMT_GOODS_PRICE": "Goods Price",
+    "NAME_CONTRACT_TYPE": "Contract Type",
+    "CODE_GENDER": "Gender",
+    "FLAG_OWN_CAR": "Owns Car",
+    "FLAG_OWN_REALTY": "Owns Realty",
+    "CNT_CHILDREN": "Number of Children",
+}
+
+# Local Ollama model — unlimited, no API key, no rate limits
+# Make sure Ollama is running: ollama serve
+# Model must be pulled first: ollama pull llama3.2
+_llm = ChatOllama(model="llama3.2", num_predict=200)
 
 
 def _build_narrative_prompt(state: LoanState) -> str:
-    """
-    Build a structured prompt for Claude to generate a 150-word audit explanation.
-    Strictly constrained to SHAP values and decision — no hallucination surface.
-    """
+    """Build a concise prompt for Claude to generate a 100-word audit explanation."""
     shap_top3 = state.get("shap_top3") or []
-    shap_lines = "\n".join(
-        f"  - {f['feature']}: value={f['value']:.2f}, SHAP={f['shap_value']:.4f} ({f['direction']})"
+    shap_lines = ", ".join(
+        f"{f['feature']}={f['shap_value']:+.3f}"
         for f in shap_top3
     )
-    return f"""You are a credit risk compliance officer writing a regulatory audit explanation.
-Write a plain-English explanation (maximum 150 words) for the following loan decision.
-You MUST only reference the SHAP features listed below. Do not invent other reasons.
-
-Decision: {state.get('decision', 'N/A')}
-Reason: {state.get('decision_reason', 'N/A')}
-Default Probability: {state.get('default_probability', 'N/A')}
-Fraud Score: {state.get('fraud_score', 'N/A')}
-Uplift Segment: {state.get('segment', 'N/A')}
-
-Top 3 SHAP factors driving the credit risk score:
-{shap_lines}
-
-Write the explanation now:"""
+    return (
+        f"Write a 80-word plain-English loan decision explanation for a compliance audit.\n"
+        f"Decision: {state.get('decision')} | "
+        f"Default prob: {state.get('default_probability', 0):.1%} | "
+        f"Fraud score: {state.get('fraud_score', 0):.2f} | "
+        f"Segment: {state.get('segment')}\n"
+        f"Top SHAP factors: {shap_lines}\n"
+        f"Only reference the SHAP factors listed. Be factual and concise."
+    )
 
 
 def _generate_narrative(state: LoanState) -> str:
@@ -74,7 +86,7 @@ def _generate_narrative(state: LoanState) -> str:
             f"Default probability: {state.get('default_probability', 'N/A'):.2%}. "
             f"Fraud score: {state.get('fraud_score', 'N/A'):.2f}. "
             f"Uplift segment: {state.get('segment', 'N/A')}. "
-            f"[LLM narrative unavailable: {e}]"
+            f"[AI narrative currently unavailable due to backend connection error.]"
         )
 
 
@@ -135,8 +147,9 @@ def _generate_pdf(state: LoanState, narrative: str, app_id: str) -> str:
     shap_top3 = state.get("shap_top3") or []
     shap_data = [["Feature", "Value", "SHAP Impact", "Direction"]]
     for f in shap_top3:
+        mapped_name = FEATURE_MAPPING.get(f["feature"], f["feature"])
         shap_data.append([
-            f["feature"], f"{f['value']:.4f}",
+            mapped_name, f"{f['value']:.4f}",
             f"{f['shap_value']:+.4f}", f["direction"]
         ])
     if shap_data:

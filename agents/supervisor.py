@@ -66,7 +66,19 @@ def supervisor_node(state: LoanState) -> LoanState:
             ),
         }
 
-    # ── Rule 5: Uplift segment routing ───────────────────────────────────────
+    # ── Rule 5: Low Default Probability Override ──────────────────────────────
+    if default_prob < 0.15 and segment in ["Do Not Disturb", "Lost Cause"]:
+        return {
+            **state,
+            "decision": "approve_standard",
+            "decision_reason": (
+                f"Approved at standard rate: applicant has an excellent credit profile "
+                f"(default probability {default_prob:.2%}). Uplift segment '{segment}' indicates "
+                f"a rate offer is unnecessary or counterproductive, so the standard rate is applied."
+            )
+        }
+
+    # ── Rule 6: Standard Uplift segment routing ──────────────────────────────
     segment_routing = {
         "Persuadable": (
             "approve_with_rate",
@@ -86,7 +98,7 @@ def supervisor_node(state: LoanState) -> LoanState:
         "Do Not Disturb": (
             "decline",
             "Application declined: applicant is in the Do Not Disturb segment — "
-            "a rate offer would be counterproductive.",
+            "a rate offer would be counterproductive and baseline risk is too high.",
         ),
     }
 
