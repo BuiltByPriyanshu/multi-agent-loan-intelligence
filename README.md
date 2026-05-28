@@ -366,7 +366,7 @@ curl -X POST http://localhost:8000/evaluate-loan \
 
 ## 📸 Screenshots
 
-> *(Add your Streamlit UI screenshot and audit PDF screenshot here)*
+
 
 ### Streamlit Frontend
 <img width="1600" height="815" alt="WhatsApp Image 2026-05-04 at 22 56 24" src="https://github.com/user-attachments/assets/52680df7-72af-459a-9f2c-184686b2c12f" />
